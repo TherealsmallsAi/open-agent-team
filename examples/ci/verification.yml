@@ -1,0 +1,60 @@
+# Example GitHub Actions job — adapt to your stack
+# Place under .github/workflows/ in the target repository
+
+name: Agent verification
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the submitted commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Set up Node (example)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'yarn'   # or npm / pnpm
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Prepare environment / seed
+        run: yarn predev:ci || true   # adapt
+
+      - name: Type check
+        run: yarn types || yarn tsc --noEmit
+
+      - name: Run verification suite
+        # Replace with your real start + test commands
+        run: |
+          yarn dev &
+          # wait-on or sleep + curl until ready
+          yarn test:e2e --spec "path/to/relevant/specs"
+
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ github.event.pull_request.head.sha }}
+          path: |
+            cypress/screenshots
+            cypress/videos
+            artifacts/
+          if-no-files-found: ignore

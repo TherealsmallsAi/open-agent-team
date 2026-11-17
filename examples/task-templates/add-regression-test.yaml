@@ -1,0 +1,49 @@
+# Example structured task (send to Chief)
+
+task: add_failed_login_retry_coverage
+
+repository:
+  source: https://github.com/example/your-app
+  target: my_connected_copy
+
+issue:
+  title: "Test successful sign-in after a failed attempt"
+  create_if_missing: true
+
+planning:
+  owner: Lead
+  inspect:
+    - existing auth tests
+    - login helpers / commands
+    - verification skill if present
+  check_for_equivalent_coverage: true
+  record_base_commit: true
+
+implementation:
+  owner: Builder
+  branch: test/signin-retry
+  reuse_existing_helpers: true
+
+scenario:
+  - submit_invalid_credentials
+  - assert_authentication_error
+  - clear_fields
+  - enter_valid_seeded_credentials
+  - submit_without_page_reload
+  - assert_authenticated_state
+  - assert_previous_error_is_absent
+
+boundaries:
+  application_changes: require_human_approval
+  weaken_assertions: false
+  arbitrary_sleep_calls: false
+  merge: false
+
+handoff:
+  reviewer: Reviewer
+  require:
+    - issue_url
+    - draft_PR_url
+    - base_and_head_commit_SHA
+    - test_commands_and_results
+    - evidence_links
